@@ -107,6 +107,14 @@ views.py
             'response': 'OK'
         }
     
+    # json/action?callback=foo => foo({"response": "ok"})
+    @resource(r'^json/action$', 'json_example')
+    @render(format='jsonp')
+    def json_example(request):
+        return {
+            'response': 'OK'
+        }
+    
     @resource(r'^data.html$', 'raw_example')
     @render()
     def raw_example(request):

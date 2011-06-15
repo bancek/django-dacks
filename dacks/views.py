@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import wraps
 
 from django.template.context import RequestContext
@@ -5,6 +6,15 @@ from django.shortcuts import render_to_response
 from django.conf.urls.defaults import url
 from django.http import HttpResponse
 from django.utils import simplejson
+
+def json_special(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+        
+    elif hasattr(obj, 'as_dict'):
+        return obj.as_dict()
+    
+    raise TypeError('%r is not JSON serializable' % (obj,))
 
 def render(template=None, **extra):
     if extra is None:
@@ -26,10 +36,16 @@ def render(template=None, **extra):
             if isinstance(data, basestring):
                 return HttpResponse(data, mimetype or 'text/html')
             
-            if format == 'json':
-                json = simplejson.dumps(data)
+            if format in ('json', 'jsonp'):
+                json = simplejson.dumps(data, default=json_special)
                 
-                return HttpResponse(json, 'application/json')
+                json_mime = 'application/json'
+                
+                if format == 'jsonp' and 'callback' in request.GET:
+                    json = '%s(%s)' % (request.GET['callback'], json)
+                    json_mime = 'text/javascript'
+                
+                return HttpResponse(json, json_mime)
             
             d = dict(extra)
             
